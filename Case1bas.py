@@ -80,6 +80,14 @@ def checkFit(mData, vParameter, sDistribution):
         
         #print(st.chisquare(vCalls,vPoisson), '\n')
 
+def plotQQBivariate(vData, dPar1, dPar2, sDistribution):
+    if(sDistribution == 'Weibull'):
+        st.probplot(vData, dist=st.weibull_min(dPar1,dPar2), plot=plt)
+    elif(sDistribution == 'Gamma'):
+        st.probplot(vData, dist=st.weibull_min(dPar1,dPar2), plot=plt)
+    elif(sDistribution == 'Lognormal'):
+        st.probplot(vData, dist=st.weibull_min(dPar1,dPar2), plot=plt)
+
 def checkFitBivariate(mData, mParameter, sDistribution):
     """
     Purpose: to check the fit of the Poisson distribution to the observed data
@@ -94,44 +102,38 @@ def checkFitBivariate(mData, mParameter, sDistribution):
             in the second subplot: a QQ plot showing the goodness of fit
         -results from a chi-squared test
     """
-    vLabelsCalls= ['7-8','8-9','9-10','10-11','11-12','12-13','13-14','14-15','15-16','16-17','17-18','18-19','19-20','20-21']
-    vLabelsService= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    vLabels= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     #iM= len(mData[:,0])
     iN= len(mData[0])
         
     for i in range(iN):
         vData= mData[:,i]
-        dParameter= vParameter[i]
+        dPar1= mParameter[i,0]
+        dPar2= mParameter[i,1]
+        sLabel= vLabels[i]
         
         dMax= np.max(vData)
         #dStepSize= dMax/iM
         vK= np.arange(dMax)
         
-        if(sDistribution == 'Poisson'):
-            vDistribution= st.poisson.pmf(vK,dParameter)
-            sLabel= vLabelsCalls[i]
+        if(sDistribution == 'Weibull'):
+            vDistribution= st.weibull.pdf(vK,dPar1,dPar2)
+        elif(sDistribution == 'Gamma'):
+            #vDistribution=
+            x=5
+        elif(sDistribution == 'Lognormal'):
+            dMu= dPar1
+            dSigma= dPar2
+            vDistribution= st.lognorm.pdf(vK,dSigma,scale=np.exp(dMu))
         else:
-            sLabel= vLabelsService[i]
-            if(sDistribution == 'Exponential'):
-                iScale= 1/dParameter
-                vDistribution= st.expon.pdf(vK,scale=iScale)
-            elif(sDistribution == 'Weibull'):
-                vDistribution= st.weibull_min.pdf(vK,1,scale=dParameter)
-            elif(sDistribution == 'Gamma'):
-                #vDistribution=
-                x=5
-            elif(sDistribution == 'Lognormal'):
-                #vDistribution=
-                x=5
-            else:
-                print('Something went wrong')
-                return
+            print('Something went wrong')
+            return
         
         plt.figure()
         plt.subplot(1,2,1)
         plotDistribution(vData, vDistribution, sDistribution)
         plt.subplot(1,2,2)
-        plotQQ(vData,dParameter, sDistribution)
+        plotQQBivariate(vData,dPar1, dPar2, sDistribution)
         plt.suptitle(sLabel)
         plt.show()
         
@@ -165,9 +167,19 @@ def partA(sCalls, sService):
     checkFit(mService, vM, 'Exponential')
     
     # third part: try some other distributions to model the service time
-    #checkFit(mService, vM, 'Weibull')
-    #checkFit(mService, vM, 'Gamma')
-    #checkFit(mService, vM, 'Lognormal')
+    mParametersLognormal= np.zeros((iMonths, 2)) 
+    
+    ## mean and standard deviations; parameters for log-normal
+    for i in range(iMonths):
+        dMu= np.mean(np.log(mService[:,i]))
+        dSigma= np.mean(((np.log(mService[:,i]) - dMu))**2)
+        mParametersLognormal[i,0]= dMean
+        mParametersLognormal[i,1]= dSigma
+    
+    checkFitBivariate(mService, mParametersLognormal, 'Lognormal')
+            
+    #checkFitBivariate(mService, vM, 'Weibull')
+    #checkFitBivariate(mService, vM, 'Gamma')
 
 def main():
     sCalls= 'ccarrdata.txt'
