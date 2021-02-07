@@ -78,7 +78,10 @@ def checkFit(mData, vParameter, sDistribution):
         plt.suptitle(sLabel)
         plt.show()
         
-        #print(st.chisquare(vCalls,vPoisson), '\n')
+        #vDataBinned= st.binned_statistic(vData)
+        #vDistrBinned= st.binned_statistic(vDistribution)
+        
+        #print(st.chisquare(vDataBinned,vDistrBinned), '\n')
 
 def plotQQBivariate(vData, dPar1, dPar2, sDistribution):
     if(sDistribution == 'Weibull'):
@@ -86,7 +89,7 @@ def plotQQBivariate(vData, dPar1, dPar2, sDistribution):
     elif(sDistribution == 'Gamma'):
         st.probplot(vData, dist=st.weibull_min(dPar1,dPar2), plot=plt)
     elif(sDistribution == 'Lognormal'):
-        st.probplot(vData, dist=st.weibull_min(dPar1,dPar2), plot=plt)
+        st.probplot(vData, dist=st.lognorm(dPar2,scale=np.exp(dPar1)), plot=plt)
 
 def checkFitBivariate(mData, mParameter, sDistribution):
     """
@@ -119,8 +122,10 @@ def checkFitBivariate(mData, mParameter, sDistribution):
         if(sDistribution == 'Weibull'):
             vDistribution= st.weibull.pdf(vK,dPar1,dPar2)
         elif(sDistribution == 'Gamma'):
-            #vDistribution=
-            x=5
+            dShape, dLoc, dScale= st.gamma.fit(vData)
+            vDistribution= st.gamma.pdf(vData, dShape, loc=dLoc, scale=dScale)
+            #dLoc, dScale= st.expon.fit(vData)
+            #vDistribution= st.expon.pdf(vData, loc=dLoc, scale=dScale)
         elif(sDistribution == 'Lognormal'):
             dMu= dPar1
             dSigma= dPar2
@@ -173,10 +178,11 @@ def partA(sCalls, sService):
     for i in range(iMonths):
         dMu= np.mean(np.log(mService[:,i]))
         dSigma= np.mean(((np.log(mService[:,i]) - dMu))**2)
-        mParametersLognormal[i,0]= dMean
+        mParametersLognormal[i,0]= dMu
         mParametersLognormal[i,1]= dSigma
     
     checkFitBivariate(mService, mParametersLognormal, 'Lognormal')
+    #checkFitBivariate(mService, mParametersLognormal, 'Gamma')
             
     #checkFitBivariate(mService, vM, 'Weibull')
     #checkFitBivariate(mService, vM, 'Gamma')
