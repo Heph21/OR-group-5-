@@ -178,6 +178,34 @@ def getTimesAndAgents(dMu, dRho, dSL, sLabel, iN):
     
     return vWaitingTime, vAgents
 
+def matchValues(mData, vSolution):
+    iM= len(vSolution)
+    vRes= np.zeros(iM)
+    
+    for i in range(iM):
+        j= vSolution[i]
+        vRes[i]= mData[i,j]
+    
+    return vRes
+
+def improveSolution(mWaitingTime, mAgents, vSolution, dSL):
+    iM= len(vSolution)
+    vBestSolution= vSolution
+    vBestWaitingTime= matchValues(mWaitingTime, vSolution)
+    vBestAgents= matchValues(mAgents, vSolution)
+    
+    for i in range(iM):
+        vTempSolution= np.copy(vBestSolution)
+        vTempSolution[i]-= 1
+        vBestWaitingTime= matchValues(mWaitingTime, vTempSolution)
+        vBestAgents= matchValues(mAgents, vTempSolution)
+        dLevel= np.mean(vBestWaitingTime)
+        
+        if(dLevel >= dSL):
+            vBestSolution= vTempSolution
+    
+    return vBestSolution
+
 ### The three parts ###
 def partA(sCalls, sService):
     
@@ -225,13 +253,14 @@ def partA(sCalls, sService):
     
     return vL, dMu
 
-def partB(vLambda, dMu, iN= 10):
+def partB(vLambda, dMu, dSL=0.8, iN= 10):
     vLabels= ['7-8','8-9','9-10','10-11','11-12','12-13','13-14','14-15','15-16','16-17','17-18','18-19','19-20','20-21']
-    dSL= 0.8
     iM= len(vLambda)
+    
+    # first part: compute a feasible solution
     mWaitingTime= np.zeros((iM,iN))
-    mAgents= np.zeros((iM,iN))
-    vAgentsSL= np.zeros(iM)
+    mAgents= np.zeros((iM,iN)).astype(int)
+    vFirstSolution= np.zeros(iM).astype(int)
     
     for i in range(iM):
         dRho= vLambda[i]/dMu
@@ -243,12 +272,21 @@ def partB(vLambda, dMu, iN= 10):
     
         for j in range(iN):
             if(vWaitingTime[j] >= dSL):
-                vAgentsSL[i]= vAgents[j]  
+                vFirstSolution[i]= j 
                 break
             #print('This service level seems infeasible')
     
-    print('\nThe amount of agents to meet the SL at each hour, is:', vAgentsSL)
+    ## print the amount of agents required per hour
+    vAgents1= matchValues(mAgents, vFirstSolution)
+    print('The amount of agents to meet the SL at each hour, is:', vAgents1)
     
+    # second part: see if we can improve our solution
+    vBetterSolution= improveSolution(mWaitingTime, mAgents, vFirstSolution, dSL)
+    vBestSolution= improveSolution(mWaitingTime, mAgents, vBetterSolution, dSL)
+    
+    vAgents2= matchValues(mAgents, vBestSolution)
+    print('\nAnother feasible solution is:', vAgents2)
+        
 def main():
     sCalls= 'ccarrdata.txt'
     sService= 'ccserdata.txt'
