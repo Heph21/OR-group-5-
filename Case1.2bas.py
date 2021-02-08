@@ -38,16 +38,18 @@ def checkFitCalls(mData, vParameter, sDistribution):
         -results from a chi-squared test
     """
     vLabels= ['7-8','8-9','9-10','10-11','11-12','12-13','13-14','14-15','15-16','16-17','17-18','18-19','19-20','20-21']
-    #iM= len(mData[:,0])
+    iM= len(mData[:,0])
     iN= len(mData[0])
         
     for i in range(iN):
         vData= mData[:,i]
         dParameter= vParameter[i]
         
+        dMin= np.min(vData)
         dMax= np.max(vData)
-        #dStepSize= dMax/iM
+        dStepSize= dMax/iM
         vK= np.arange(dMax)
+        #vK= np.linspace(dMin, dMax, iM)
         vDistribution= st.poisson.pmf(vK,dParameter)
         sLabel= vLabels[i]
         
@@ -59,10 +61,11 @@ def checkFitCalls(mData, vParameter, sDistribution):
         plt.suptitle(sLabel)
         plt.show()
                
-        #vDataBinned= st.binned_statistic(vData)
-        #vDistrBinned= st.binned_statistic(vDistribution)
-        
-        #print(st.chisquare(vDataBinned,vDistrBinned), '\n')
+        #vDataBinned= st.binned_statistic(vData,vData, bins=5)
+        #vExpObs= st.binned_statistic(vDistribution * iM, vDistribution * iM, bins=5)
+        #print(vDataBinned)
+        #print(vExpObs)
+        #print(st.chisquare(vDataBinned,vExpObs), '\n')
 
 def checkFitService(vData, dMu, sDistribution):
     sLabel= 'Call Duration'
@@ -141,7 +144,7 @@ def checkFitBivariate(mData, mParameter, sDistribution):
         
         #print(st.chisquare(vCalls,vPoisson), '\n')    
 
-def waitingTime(dRho, iAgents):
+def waitingTime(dMu, dRho, iAgents, t=1/120):
     dSumThingy= 0
     for i in range(iAgents):
         dSumThingy+= (dRho**i) / np.math.factorial(i)
@@ -151,7 +154,29 @@ def waitingTime(dRho, iAgents):
 
     dPi= dFirstFactor / dSecondFactor
     
-    return dPi
+    dW= 1 - dPi * np.exp(-dMu * (iAgents - dRho) * t)
+    
+    return dW
+
+def getTimesAndAgents(dMu, dRho, dSL, sLabel, iN):
+    a= np.fix(dRho+1).astype(int)
+    b= np.fix(dRho+1+iN).astype(int)
+        
+    vAgents= np.arange(a,b)
+    vWaitingTime= np.zeros(b-a)
+       
+    for i in range(a,b):
+        dWaitingTime= waitingTime(dMu, dRho, i) 
+        vWaitingTime[i-a]= dWaitingTime
+            
+    plt.figure()
+    plt.title('SL = W(30 secs)')
+    plt.scatter(vAgents, vWaitingTime, label=sLabel, color='k')
+    plt.hlines(dSL, a, b, color='r')
+    plt.legend()
+    plt.show()
+    
+    return vWaitingTime, vAgents
 
 ### The three parts ###
 def partA(sCalls, sService):
@@ -200,10 +225,30 @@ def partA(sCalls, sService):
     
     return vL, dMu
 
-def partB(vLambda, dMu):
-    x=4
+def partB(vLambda, dMu, iN= 10):
+    vLabels= ['7-8','8-9','9-10','10-11','11-12','12-13','13-14','14-15','15-16','16-17','17-18','18-19','19-20','20-21']
+    dSL= 0.8
+    iM= len(vLambda)
+    mWaitingTime= np.zeros((iM,iN))
+    mAgents= np.zeros((iM,iN))
+    vAgentsSL= np.zeros(iM)
     
-
+    for i in range(iM):
+        dRho= vLambda[i]/dMu
+        sLabel= vLabels[i]
+        
+        vWaitingTime, vAgents= getTimesAndAgents(dMu, dRho, dSL, sLabel, iN)
+        mWaitingTime[i]= vWaitingTime
+        mAgents[i]= vAgents
+    
+        for j in range(iN):
+            if(vWaitingTime[j] >= dSL):
+                vAgentsSL[i]= vAgents[j]  
+                break
+            #print('This service level seems infeasible')
+    
+    print('\nThe amount of agents to meet the SL at each hour, is:', vAgentsSL)
+    
 def main():
     sCalls= 'ccarrdata.txt'
     sService= 'ccserdata.txt'
