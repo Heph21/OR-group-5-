@@ -5,7 +5,6 @@ Created on Tue Feb  2 11:07:43 2021
 @author: basbr
 """
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats as st
 
@@ -68,8 +67,6 @@ def checkFitCalls(mData, vParameter, sDistribution):
         #print(st.chisquare(vDataBinned,vExpObs), '\n')
 
 def checkFitService(vData, dMu, sDistribution):
-    sLabel= 'Call Duration'
-    
     dMax= np.max(vData)
     vK= np.arange(dMax)
     iScale= 1/dMu
@@ -188,21 +185,40 @@ def matchValues(mData, vSolution):
     
     return vRes
 
-def improveSolution(mWaitingTime, mAgents, vSolution, dSL):
+def improveSolution(mServiceLevel, vSolution, dSL, searchTime= 5):
     iM= len(vSolution)
     vBestSolution= vSolution
-    vBestWaitingTime= matchValues(mWaitingTime, vSolution)
-    vBestAgents= matchValues(mAgents, vSolution)
+    vBestServiceLevel= matchValues(mServiceLevel, vSolution)
     
-    for i in range(iM):
+    while(searchTime >= 1):
+        i= np.argmax(vBestServiceLevel)
         vTempSolution= np.copy(vBestSolution)
         vTempSolution[i]-= 1
-        vBestWaitingTime= matchValues(mWaitingTime, vTempSolution)
-        vBestAgents= matchValues(mAgents, vTempSolution)
-        dLevel= np.mean(vBestWaitingTime)
+        vBestServiceLevel= matchValues(mServiceLevel, vTempSolution)
+        dLevel= np.mean(vBestServiceLevel)
         
         if(dLevel >= dSL):
             vBestSolution= vTempSolution
+        else:
+            searchTime-= 1
+    
+    return vBestSolution
+
+def improveSolutionRandomly(mServiceLevel, vSolution, dSL, searchTime= 5):
+    iM= len(vSolution)
+    vBestSolution= vSolution
+    vBestServiceLevel= matchValues(mServiceLevel, vSolution)
+    
+    while(searchTime >= 1):
+        i= np.random.randint(0,iM)
+        vTempSolution= np.copy(vBestSolution)
+        vTempSolution[i]-= 1
+        vBestServiceLevel= matchValues(mServiceLevel, vTempSolution)
+        dLevel= np.mean(vBestServiceLevel)
+        if(dLevel >= dSL):
+            vBestSolution= vTempSolution
+        else:
+            searchTime-= 1
     
     return vBestSolution
 
@@ -258,7 +274,7 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
     iM= len(vLambda)
     
     # first part: compute a feasible solution
-    mWaitingTime= np.zeros((iM,iN))
+    mServiceLevel= np.zeros((iM,iN))
     mAgents= np.zeros((iM,iN)).astype(int)
     vFirstSolution= np.zeros(iM).astype(int)
     
@@ -266,12 +282,12 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
         dRho= vLambda[i]/dMu
         sLabel= vLabels[i]
         
-        vWaitingTime, vAgents= getTimesAndAgents(dMu, dRho, dSL, sLabel, iN)
-        mWaitingTime[i]= vWaitingTime
+        vServiceLevel, vAgents= getTimesAndAgents(dMu, dRho, dSL, sLabel, iN)
+        mServiceLevel[i]= vServiceLevel
         mAgents[i]= vAgents
     
         for j in range(iN):
-            if(vWaitingTime[j] >= dSL):
+            if(vServiceLevel[j] >= dSL):
                 vFirstSolution[i]= j 
                 break
             #print('This service level seems infeasible')
@@ -279,13 +295,27 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
     ## print the amount of agents required per hour
     vAgents1= matchValues(mAgents, vFirstSolution)
     print('The amount of agents to meet the SL at each hour, is:', vAgents1)
+    print('Total amount of agents required', np.sum(vAgents1))
     
     # second part: see if we can improve our solution
-    vBetterSolution= improveSolution(mWaitingTime, mAgents, vFirstSolution, dSL)
-    vBestSolution= improveSolution(mWaitingTime, mAgents, vBetterSolution, dSL)
+    vBetterSolution= improveSolution(mServiceLevel, vFirstSolution, dSL)
+    vAgentsBetter= matchValues(mAgents, vBetterSolution)
+    print('\nAnother feasible solution is:', vAgentsBetter)
+    print('Total amount of agents required:', np.sum(vAgentsBetter))
     
-    vAgents2= matchValues(mAgents, vBestSolution)
-    print('\nAnother feasible solution is:', vAgents2)
+    vRandomSolution= improveSolutionRandomly(mServiceLevel, vFirstSolution, dSL)   
+    vAgentsRandom= matchValues(mAgents, vRandomSolution)
+    
+    for i in range(25):
+        vMaybeBetter= improveSolutionRandomly(mServiceLevel, vFirstSolution, dSL)
+        vMaybeAgents= matchValues(mAgents, vMaybeBetter)
+        
+        if(np.sum(vMaybeAgents) < np.sum(vAgentsRandom)):
+            vRandomSolution= vMaybeBetter
+            vAgentsRandom= vMaybeAgents
+      
+    print('\nAnother feasible solution, maybe even better, is:', vAgentsRandom)
+    print('Total amount of agents required:', np.sum(vAgentsRandom))
         
 def main():
     sCalls= 'ccarrdata.txt'
