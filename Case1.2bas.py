@@ -298,13 +298,13 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
     ## print the amount of agents required per hour
     vAgents1= matchValues(mAgents, vFirstSolution)
     print('The amount of agents to meet the SL at each hour, is:', vAgents1)
-    print('Total amount of agents required', np.sum(vAgents1))
+    print('Total amount of agents required:', np.sum(vAgents1))
     print('Average SL:', np.mean(matchValues(mServiceLevel, vFirstSolution)))
     
     # second part: see if we can improve our solution
     vBetterSolution= improveSolution(mServiceLevel, vFirstSolution, dSL)
     vAgentsBetter= matchValues(mAgents, vBetterSolution)
-    print('\nAnother feasible solution is:', vAgentsBetter)
+    print('\nA cheaper feasible solution is:', vAgentsBetter)
     print('Total amount of agents required:', np.sum(vAgentsBetter))
     print('Average SL:', np.mean(matchValues(mServiceLevel, vBetterSolution)))
     
@@ -319,7 +319,7 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
             vRandomSolution= vMaybeBetter
             vAgentsRandom= vMaybeAgents
       
-    print('\nAnother feasible solution, maybe even better, is:', vAgentsRandom)
+    print('\nAnother cheap feasible solution, using a random brute force algorithm, is:', vAgentsRandom)
     print('Total amount of agents required:', np.sum(vAgentsRandom))
     print('Average SL:', np.mean(matchValues(mServiceLevel, vRandomSolution)))
         
