@@ -259,9 +259,9 @@ def partA(sCalls, sService):
     
     ## mean and standard deviations; parameters for log-normal
     for i in range(iMonths):
-        dMu= np.mean(np.log(mService[:,i]))
-        dSigma= np.mean(((np.log(mService[:,i]) - dMu))**2)
-        mParametersLognormal[i,0]= dMu
+        dMu2= np.mean(np.log(mService[:,i]))
+        dSigma= np.mean(((np.log(mService[:,i]) - dMu2))**2)
+        mParametersLognormal[i,0]= dMu2
         mParametersLognormal[i,1]= dSigma
     
     #checkFitBivariate(mService, mParametersLognormal, 'Lognormal')
@@ -327,9 +327,9 @@ def main():
     sCalls= 'ccarrdata.txt'
     sService= 'ccserdata.txt'
     
-    vLambda, vMu= partA(sCalls, sService)
-    dMu= np.mean(vMu)
-    partB(vLambda, dMu)
+    vLambda, dMu= partA(sCalls, sService)
+    dMuHourly= dMu*3600
+    partB(vLambda, dMuHourly)
 
 if __name__ == "__main__":
     main()
