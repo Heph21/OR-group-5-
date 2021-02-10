@@ -58,6 +58,8 @@ def checkFitCalls(mData, vParameter, sDistribution):
         plt.subplot(1,2,2)
         st.probplot(vData, dist=st.poisson(dParameter), plot=plt)
         plt.suptitle(sLabel)
+        plt.grid()
+        plt.tight_layout()
         plt.show()
                
         #vDataBinned= st.binned_statistic(vData,vData, bins=5)
@@ -78,6 +80,8 @@ def checkFitService(vData, dMu, sDistribution):
     plotDistribution(vData, vDistribution, sDistribution)
     plt.subplot(1,2,2)
     st.probplot(vData, dist=st.expon(scale=iScale), plot=plt)
+    plt.grid()
+    plt.tight_layout()
     plt.show()
 
 def plotQQBivariate(vData, dPar1, dPar2, sDistribution):
@@ -126,7 +130,9 @@ def checkFitBivariate(mData, mParameter, sDistribution):
         elif(sDistribution == 'Lognormal'):
             dMu= dPar1
             dSigma= dPar2
-            vDistribution= st.lognorm.pdf(vK,dSigma,scale=np.exp(dMu))
+            #vDistribution= st.lognorm.pdf(vK,dSigma,scale=np.exp(dMu))
+            dLoc, dScale= st.expon.fit(vData)
+            vDistribution= st.lognorm(vK, loc=dLoc, scale=dScale)
         else:
             print('Something went wrong')
             return
@@ -297,15 +303,17 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
     
     ## print the amount of agents required per hour
     vAgents1= matchValues(mAgents, vFirstSolution)
+    vTotalAgents1= np.sum(vAgents1)
     print('The amount of agents to meet the SL at each hour, is:', vAgents1)
-    print('Total amount of agents required:', np.sum(vAgents1))
+    print('Total amount of agents required:', vTotalAgents1)
     print('Average SL:', np.mean(matchValues(mServiceLevel, vFirstSolution)))
     
     # second part: see if we can improve our solution
     vBetterSolution= improveSolution(mServiceLevel, vFirstSolution, dSL)
     vAgentsBetter= matchValues(mAgents, vBetterSolution)
+    vTotalAgents2= np.sum(vAgentsBetter)
     print('\nA cheaper feasible solution is:', vAgentsBetter)
-    print('Total amount of agents required:', np.sum(vAgentsBetter))
+    print('Total amount of agents required:', vTotalAgents2)
     print('Average SL:', np.mean(matchValues(mServiceLevel, vBetterSolution)))
     
     vRandomSolution= improveSolutionRandomly(mServiceLevel, vFirstSolution, dSL)   
@@ -319,9 +327,18 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
             vRandomSolution= vMaybeBetter
             vAgentsRandom= vMaybeAgents
       
+    vTotalAgentsRandom= np.sum(vAgentsRandom)
     print('\nAnother cheap feasible solution, using a random brute force algorithm, is:', vAgentsRandom)
-    print('Total amount of agents required:', np.sum(vAgentsRandom))
+    print('Total amount of agents required:', vTotalAgentsRandom)
     print('Average SL:', np.mean(matchValues(mServiceLevel, vRandomSolution)))
+    
+    # returning the best solution
+    if((vTotalAgents2 <= vTotalAgentsRandom) & (vTotalAgents2 < vTotalAgents1)):
+        return vAgentsBetter
+    elif(vTotalAgentsRandom < vTotalAgents1):
+        return vAgentsRandom
+    else:
+        return vAgents1
         
 def main():
     sCalls= 'ccarrdata.txt'
@@ -329,7 +346,7 @@ def main():
     
     vLambda, dMu= partA(sCalls, sService)
     dMuHourly= dMu*3600
-    partB(vLambda, dMuHourly)
+    vAgents= partB(vLambda, dMuHourly)
 
 if __name__ == "__main__":
     main()
