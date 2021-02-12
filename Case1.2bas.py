@@ -7,6 +7,7 @@ Created on Tue Feb  2 11:07:43 2021
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
+import gurobipy as gb
 
 ### Auxiliary functions ###
 def plotDistribution(vData, vDistribution, sDistribution):
@@ -339,7 +340,78 @@ def partB(vLambda, dMu, dSL=0.8, iN= 10):
         return vAgentsRandom
     else:
         return vAgents1
-        
+
+def partC(vAgents):
+    # input
+    vShortShift= np.array([1,1,0,1,1])
+    vLongShift= np.array([1,1,0,1,1,0,1,1])
+    vSalary= np.array([30,30,25,25,25,25,25,25,25,30,30,30,30,30])
+    dBreakSalary= 10
+    
+    # create a matrix with all possible shifts as its columns
+    iShort= len(vShortShift)
+    iLong= len(vLongShift)
+    iM= len(vSalary)                # the amount of hours to be staffed
+    iShortCols= iM - iShort + 1     # amount of short shifts that fit in a day
+    iLongCols= iM - iLong + 1       # amount of long shifts that fit in a day
+    iN= iShortCols + iLongCols      # total amount of possible shifts
+    mShifts= np.zeros((iM,iN))
+    
+    for j in range(iShortCols):
+        for i in range(iM):
+            if((i >= j) & (i-j < iShort)):
+                mShifts[i,j]= vShortShift[i-j]
+    
+    for j in range(iShortCols, iN):
+        a= j - iShortCols
+        for i in range(iM):
+            if((i >= a) & (i-a < iLong)):
+                mShifts[i,j]= vLongShift[i-a]
+    
+    #for i in range(iM):
+    #    mShifts[i,-1]= vAgents[i]
+    
+    # create a matrix with corresponding salaries
+    #mSalaries= np.delete(mShifts, -1, 1)
+    mSalaries= np.copy(mShifts)
+    
+    for i in range(iM):
+        for j in range(iN):
+            if(mShifts[i,j] == 1):
+                mSalaries[i,j]= vSalary[i]
+            elif((i > 0) & (i < iM-1)):
+                if((mShifts[i,j] == 0) & (mShifts[i-1,j] == 1) & (mShifts[i+1,j] == 1)):
+                    mSalaries[i,j]= dBreakSalary
+    
+    print(mSalaries)            
+    
+    # find an exact solution that meets the amount of agents required for each hour (not necessarily feasible)
+    mLP= gb.Model('LP')
+    vDecVars= ['y0','y1','y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','y12','y13','y14','y15','y16']
+    vY= np.zeros(iN)
+    
+    for j in range(iN):
+        dObj= 0
+        for i in range(iM):
+            dObj+= mSalaries[i,j]
+            print(dObj)
+        vDecVars[j]= mLP.addVar(obj= dObj)
+    
+    for i in range(iM):
+        dConstr= 0
+        for j in range(iN):
+            dConstr+= mShifts[i,j]*vDecVars[j]
+        mLP.addConstr(dConstr >= vAgents[i])
+    
+    mLP.optimize()
+    
+    for i in range(iN):
+        vY[i]= vDecVars[i].x
+    
+    print(vY)
+    
+    return mShifts, vY
+    
 def main():
     sCalls= 'ccarrdata.txt'
     sService= 'ccserdata.txt'
@@ -347,6 +419,7 @@ def main():
     vLambda, dMu= partA(sCalls, sService)
     dMuHourly= dMu*3600
     vAgents= partB(vLambda, dMuHourly)
+    mShifts, vY= partC(vAgents)
 
 if __name__ == "__main__":
     main()
