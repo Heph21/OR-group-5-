@@ -232,6 +232,69 @@ def improveSolutionRandomly(mServiceLevel, vSolution, dSL, searchTime= 5):
     
     return vBestSolution
 
+def shiftMatrix(vShortShift,vLongShift,iHours=14):
+    iM= iHours
+    iShort= len(vShortShift)
+    iLong= len(vLongShift)
+    iShortCols= iM - iShort + 1     # amount of short shifts that fit in a day
+    iLongCols= iM - iLong + 1       # amount of long shifts that fit in a day
+    iN= iShortCols + iLongCols      # total amount of possible shifts
+    mShifts= np.zeros((iM,iN))
+    
+    for j in range(iShortCols):
+        for i in range(iM):
+            if((i >= j) & (i-j < iShort)):
+                mShifts[i,j]= vShortShift[i-j]
+    
+    for j in range(iShortCols, iN):
+        a= j - iShortCols
+        for i in range(iM):
+            if((i >= a) & (i-a < iLong)):
+                mShifts[i,j]= vLongShift[i-a]
+    
+    return mShifts
+
+def salaryMatrix(mShifts,vSalary,dBreak):
+    mSalaries= np.copy(mShifts)
+    iM= len(mSalaries[:,0])
+    iN= len(mSalaries[0])
+    
+    for i in range(iM):
+        for j in range(iN):
+            if(mShifts[i,j] == 1):
+                mSalaries[i,j]= vSalary[i]
+            elif((i > 0) & (i < iM-1)):
+                if((mShifts[i,j] == 0) & (mShifts[i-1,j] == 1) & (mShifts[i+1,j] == 1)):
+                    mSalaries[i,j]= dBreak
+    
+    return mSalaries
+    
+def solveILP(mA,mSA,vX):
+    iM= len(mA[:,0])
+    iN= len(mA[0])
+    mLP= gb.Model('LP')
+    vDecVars= ['y0','y1','y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','y12','y13','y14','y15','y16']
+    vY= np.zeros(iN)
+    
+    for j in range(iN):
+        dObj= 0
+        for i in range(iM):
+            dObj+= mSA[i,j]
+        vDecVars[j]= mLP.addVar(obj= dObj)
+    
+    for i in range(iM):
+        dConstr= 0
+        for j in range(iN):
+            dConstr+= mA[i,j]*vDecVars[j]
+        mLP.addConstr(dConstr >= vX[i])
+    
+    mLP.optimize()
+    
+    for i in range(iN):
+        vY[i]= vDecVars[i].x
+    
+    return vY
+
 ### The three parts ###
 def partA(sCalls, sService):
     
@@ -348,67 +411,19 @@ def partC(vAgents):
     vSalary= np.array([30,30,25,25,25,25,25,25,25,30,30,30,30,30])
     dBreakSalary= 10
     
-    # create a matrix with all possible shifts as its columns
-    iShort= len(vShortShift)
-    iLong= len(vLongShift)
-    iM= len(vSalary)                # the amount of hours to be staffed
-    iShortCols= iM - iShort + 1     # amount of short shifts that fit in a day
-    iLongCols= iM - iLong + 1       # amount of long shifts that fit in a day
-    iN= iShortCols + iLongCols      # total amount of possible shifts
-    mShifts= np.zeros((iM,iN))
+    # create a matrix with all possible shifts as its columns, and corresponding salary matrix
+    mShifts= shiftMatrix(vShortShift,vLongShift)
     
-    for j in range(iShortCols):
-        for i in range(iM):
-            if((i >= j) & (i-j < iShort)):
-                mShifts[i,j]= vShortShift[i-j]
+    mSalaries= salaryMatrix(mShifts,vSalary,dBreakSalary)
+               
     
-    for j in range(iShortCols, iN):
-        a= j - iShortCols
-        for i in range(iM):
-            if((i >= a) & (i-a < iLong)):
-                mShifts[i,j]= vLongShift[i-a]
+    # find a solution that meets the amount of agents required for each hour using Gurobi
+    vY= solveILP(mShifts,mSalaries,vAgents)
+    vActualAgents= np.dot(mShifts,vY)
     
-    #for i in range(iM):
-    #    mShifts[i,-1]= vAgents[i]
-    
-    # create a matrix with corresponding salaries
-    #mSalaries= np.delete(mShifts, -1, 1)
-    mSalaries= np.copy(mShifts)
-    
-    for i in range(iM):
-        for j in range(iN):
-            if(mShifts[i,j] == 1):
-                mSalaries[i,j]= vSalary[i]
-            elif((i > 0) & (i < iM-1)):
-                if((mShifts[i,j] == 0) & (mShifts[i-1,j] == 1) & (mShifts[i+1,j] == 1)):
-                    mSalaries[i,j]= dBreakSalary
-    
-    print(mSalaries)            
-    
-    # find an exact solution that meets the amount of agents required for each hour (not necessarily feasible)
-    mLP= gb.Model('LP')
-    vDecVars= ['y0','y1','y2','y3','y4','y5','y6','y7','y8','y9','y10','y11','y12','y13','y14','y15','y16']
-    vY= np.zeros(iN)
-    
-    for j in range(iN):
-        dObj= 0
-        for i in range(iM):
-            dObj+= mSalaries[i,j]
-            print(dObj)
-        vDecVars[j]= mLP.addVar(obj= dObj)
-    
-    for i in range(iM):
-        dConstr= 0
-        for j in range(iN):
-            dConstr+= mShifts[i,j]*vDecVars[j]
-        mLP.addConstr(dConstr >= vAgents[i])
-    
-    mLP.optimize()
-    
-    for i in range(iN):
-        vY[i]= vDecVars[i].x
-    
-    print(vY)
+    print('All possible shifts:\n', mShifts)
+    print('The amount of each shift to be scheduled:\n', vY)
+    print('The amount of agents per hour (resulting from such a schedule):\n',vActualAgents)
     
     return mShifts, vY
     
