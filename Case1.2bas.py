@@ -420,10 +420,14 @@ def partC(vAgents):
     # find a solution that meets the amount of agents required for each hour using Gurobi
     vY= solveILP(mShifts,mSalaries,vAgents)
     vActualAgents= np.dot(mShifts,vY)
+    vCosts= np.dot(mSalaries,vY)
+    dCosts= sum(vCosts)
     
+    # print results
     print('All possible shifts:\n', mShifts)
     print('The amount of each shift to be scheduled:\n', vY)
     print('The amount of agents per hour (resulting from such a schedule):\n',vActualAgents)
+    print('The total costs in personnel salaries, are:', dCosts)
     
     return mShifts, vY
     
