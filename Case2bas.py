@@ -302,8 +302,7 @@ def constructWebGraph(df):
         -dfWebGraph, DataFrame (of doubles), transition matrix (containing for each state, the probability of moving to each state on the next step)
         -note: 
             we do not prevent zero-rows, but given the data, we do not expect any zero-rows to occur
-            if a zero row does come up, we notify the user with a print statement
-            the user would then be required to alter dfGraph in the supervising method, before working with it as a full-grown transition matrix
+            if a zero row does come up, we notify the user with a print statement (and fix it)
     """
     iN = len(df)
     
