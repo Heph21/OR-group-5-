@@ -71,7 +71,7 @@ def inspectClubList(vClubs, vDFs):
     print(serClubs)
     print('\nThe amount of clubs appearing in the Premier League from 2009 to 2019 is:', iN, '\n')
 
-def readCell(sScore, sDelimiter='-'):
+def readCell(sScore, sDelimiter='–'):
     """
     Purpose: to process the information in a single cell from one of our seasonly dataframes
     
@@ -83,12 +83,9 @@ def readCell(sScore, sDelimiter='-'):
         -iAway, goals scored by the away team
     """
     sPartition = sScore.partition(sDelimiter)
-    print(sPartition)
-    #iHome = int(sPartition[0])
-    #iAway = int(sPartition[2])
     
-    iHome = int(sScore[0])
-    iAway = int(sScore[2])
+    iHome = int(sPartition[0])
+    iAway = int(sPartition[2])
     
     return iHome, iAway
      
@@ -482,7 +479,7 @@ def constructGraph(dfMatches, dfLost, dfDrawn, dfScored, dfConceded, sMethod='Lo
     
     return dfWebGraph
     
-def PageRank(dfWeb):
+def PageRank(dfWeb, dEps=1e-5):
     """
     Purpose: to compute the limiting probability distribution of a given transition matrix, and find the according page ranking
     
@@ -506,8 +503,15 @@ def PageRank(dfWeb):
     serRank = serPi.sort_values(ascending=False)
     
     # print resulting ranking
-    print(serRank)
-
+    print(serRank, '\n')
+    
+    # check if the entries sum to 1
+    dCheck = np.abs(sum(serRank) - 1)
+    if(dCheck < dEps):
+        print('This looks like a good solution!')
+    else:
+        print('This solution does not seem entirely accurate')
+        
        
 def main():
     sFile   = 'Premier League.xlsx'
