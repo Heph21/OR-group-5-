@@ -205,23 +205,6 @@ def partA(iPatients, dMeanTime, iDueTime, iN=1000, dTheta=1.5, dSigma=1.0):
     
     reportFindings(vY,dSigma,dLoc,dTheta)
     
-    """
-    # compute findings
-    dEST = vY.mean()
-    dVar = variance(vY)
-    dSE  = np.sqrt(dVar/iN)
-    dX   = dSE/dEST
-    
-    # report findings and parameters
-    print('We ran some simulations')
-    print('We chose a theta parameter of:', dTheta)
-    print('The distribution we used for the consult times was log-normal')
-    print('We set sigma to be %.1f, which led to a location parameter of %.2f' %(dSigma, dLoc))
-    print('The average outcome over %i simulations, was %.2f minutes' %(iN, dEST))
-    print('The standard error was %.2f' %dSE)
-    print('SE/EST came out at %.3f' %dX)
-    print('Finally, the 95% confidence interval:', '\n')
-    """
 
 def partB(iPatients, dMeanTime, iDueTime, iN=100, dSigma=1.0):
     """
@@ -235,7 +218,8 @@ def partB(iPatients, dMeanTime, iDueTime, iN=100, dSigma=1.0):
         dSigma      sigma parameter (float) for the log-normal distribution 
         
     Output:
-        
+        We print some results for different levels of theta
+        We plot the Y variable for different levels of theta
     """
     vTheta = np.arange(1,2,0.1)     # vector of theta's to be used in simulation
     
