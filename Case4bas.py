@@ -23,6 +23,7 @@ def computeCombinations(vI):
     
     for i in range(iN):
         vJ    = np.delete(vI, i)    # possible state transition
+        dRes += dProb * vI[i]
         dProf = expProfit(vJ)       # expected profit of the new state
         dRes += dProb * dProf       # add this profit, times the probability of the transition, to the value function
     
@@ -51,7 +52,7 @@ def expProfit(vI):
     
     # compute expected profit considering distribution of elements
     if((iPos > 0) & (iNeg > 0)):
-        dRes += computeCombinations(vI)
+        dRes += max(0, computeCombinations(vI))
     elif(iPos > 0):
         dRes += sum(vI)
     
@@ -70,9 +71,9 @@ def partB():
     vX = np.array([1,3,5,7,9])
     vY = vX - 5
     
-    vZ= np.array([-5,4])
+    vZ= np.array([-1,4])
     
-    dProf = expProfit(vZ)
+    dProf = expProfit(vY)
     print(dProf)
 
 def main():
