@@ -5,8 +5,9 @@ Created on Sun Apr 11 14:15:11 2021
 @author: basbr
 """
 import numpy as np
+import scipy.stats as st
 
-# numbers that determine the game
+# numbers that determine the game (global)
 iCost  = 5
 iLow   = 0
 iHigh  = 10
@@ -34,47 +35,71 @@ def computeCombinations(vI):
     
     return dRes
 
-def expProfit(vI):
+def dataType(vI):
     """
-    Purpose: to compute the maximal expected profit given the state vector vI
+    Purpose: to check whether the vector contains both positive and negative elements
     
     Input:
-        vI, state vector containing integers, the numbers left to play with
-    
+        vI, vector of integers
+        
     Output:
-        dRes, maximal expected profit    
+        We return:
+            1   if the vector contains only positive numbers (and zeros)
+            0   if the vector contains both positive and negative numbers
+            -1  if the vector contains no positive numbers
     """
-    dRes = 0
     iPos = 0    # keep count of strictly positive elements of vI
     iNeg = 0    # keep count of strictly negative elements of vI
     
-    # go through elements to count strictly positive and strictly negative elements
     for i in vI:
         if(i > 0):
             iPos += 1
         elif(i < 0):
             iNeg += 1
     
+    if((iPos > 0) & (iNeg == 0)):
+        return 1
+    elif((iPos == 0) & (iNeg >= 0)):
+        return -1
+    else:
+        return 0
+
+def expProfit(vI):
+    """
+    Purpose: to compute the optimal expected profit given the state vector vI
+    
+    Input:
+        vI, state vector containing integers, the numbers left to play with
+    
+    Output:
+        dRes, optimal expected profit    
+    """
+    dRes = 0
+    
+    iType = dataType(vI) 
+    
     # compute expected profit considering distribution of elements
-    if((iPos > 0) & (iNeg > 0)):
-        dRes += max(0, computeCombinations(vI))
-    elif(iPos > 0):
-        dRes += sum(vI)
+    if(iType == 1):
+        dRes += sum(vI)                             # vI contains positive numbers, so the expected profit is the sum of the elements
+    elif(iType == 0):
+        dRes += max(0, computeCombinations(vI))     # vI contains both positive and negative numbers, so we need to some more computations
+    
+    # note that if vI contains no positive numbers, the expected profit is 0
     
     return dRes
 
-def runSimulation(iN=1000, bPrint=0):
+def runSimulation(iN=1000, bPrint=0, sDistr='uniform'):
     """
-    Purpose: to run a number of simulations and compute the maximal expected profit for the game 
+    Purpose: to run a number of simulations and compute the optimal expected profit for the game 
     
     Input:
         iN, number of simulations to run
         bPrint, whether or not to print the drawn numbers and their outcome for each simulation
+        sDistr, the distribution to be used to draw the 5 random numbers to play with (default is uniform)
         
     Output:
         We print, if wanted, the drawn numbers and their outcome for each simulation
-        We return a vector of maximal expected profit for each simulation
-        
+        We return a vector of optimal expected profit for each simulation   
     """
     vSols = np.zeros(iN)    # vector to store solutions of simulations
     
@@ -83,7 +108,14 @@ def runSimulation(iN=1000, bPrint=0):
         
         for j in range(iTurns):
             #np.random.seed(i*i+j)
-            iX    = np.random.randint(iLow, iHigh+1)
+            if(sDistr == 'Binom'):
+                dProb = np.random.rand()
+                iX    = st.binom.ppf(dProb, n=iHigh, p=1/iTurns)
+            elif(sDistr == 'Boltz'):
+                dProb = np.random.rand()
+                iX    = st.binom.ppf(dProb, n=iHigh, p=1/iTurns)
+            else:
+                iX    = np.random.randint(iLow, iHigh+1)
             vX[j] = iX
         
         vSols[i] = expProfit(vX-iCost)  # compute and store maximal expected profit
@@ -116,6 +148,31 @@ def variance(vX):
     dVar = dSum / (iN - 1)
     
     return dVar
+
+def reportFindings(vData):
+    """
+    Purpose: to report some findings on the simulations we've run
+    
+    Input:
+        vData, outcome of the simulation
+       
+    Output:
+        We print the average maximal expected profit
+        We print a 95% confidence interval for the maximal expected profit    
+    """
+    
+    # process simulations
+    iN   = len(vData)
+    dAvg = np.mean(vData)
+    dVar = variance(vData)
+    dSE  = np.sqrt(dVar/iN)
+    dLB  = dAvg - 1.96 * dSE    # lower bound of the 95% confidence interval
+    dUB  = dAvg + 1.96 * dSE    # upper bound of the 95% confidence interval
+
+    # report findings    
+    print('Over %i simulations, the average optimal expected profit was: %.2f.' %(iN, np.mean(vData)))
+    print('95%% confidence interval:(%.2f, %.2f)' %(dLB,dUB) ,'\n')
+    
       
 def partB():
     """
@@ -134,6 +191,7 @@ def partB():
     vY = vX - iCost
     
     #vZ= np.array([-1,4])
+    #vY = np.array([-3,0,1])
     
     dProf = expProfit(vY)
     print('We drew the following numbers:')
@@ -162,21 +220,33 @@ def partC():
     bPrint = 0
     vSims  = runSimulation(iN, bPrint)
     
-    # process simulations
-    dAvg = np.mean(vSims)
-    dVar = variance(vSims)
-    dSE  = np.sqrt(dVar/iN)
-    dLB  = dAvg - 1.96 * dSE    # lower bound of the 95% confidence interval
-    dUB  = dAvg + 1.96 * dSE    # upper bound of the 95% confidence interval
-
-    # report findings    
-    print('Over %i simulations, the average maximal expected profit was: %.2f.' %(iN, np.mean(vSims)))
-    print('95%% confidence interval:(%.2f, %.2f)' %(dLB,dUB) ,'\n')
+    reportFindings(vSims)
+    
+def partD():
+    """
+    Purpose: to run some simulations where the numbers we play with come from a non-uniform distribution
+    
+    Input:
+        
+    Output:
+        For each distribution,
+            We print the average maximal expected profit
+            We print a 95% confidence interval for the maximal expected profit
+        
+    """
+    # first distribution: binomial with n=10 and p=0.2
+    print('First, we try the binomial distribution with n=%i and p=%.2f:' %(iHigh, 1/iCost))
+    vBinom = runSimulation(sDistr='binom')
+    reportFindings(vBinom)
+    
+    #vNext = runSimulation(sDistr='boltz')
+    #reportFindings(vNext)
     
     
 def main(): 
     partB()
     partC()
+    partD()
     
 
 if __name__ == "__main__":
