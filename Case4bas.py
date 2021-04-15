@@ -166,8 +166,8 @@ def partC():
     dAvg = np.mean(vSims)
     dVar = variance(vSims)
     dSE  = np.sqrt(dVar/iN)
-    dLB  = dAvg - 1.96 * dAvg   # lower bound of the 95% confidence interval
-    dUB  = dAvg + 1.96 * dAvg   # upper bound of the 95% confidence interval
+    dLB  = dAvg - 1.96 * dSE    # lower bound of the 95% confidence interval
+    dUB  = dAvg + 1.96 * dSE    # upper bound of the 95% confidence interval
 
     # report findings    
     print('Over %i simulations, the average maximal expected profit was: %.2f.' %(iN, np.mean(vSims)))
