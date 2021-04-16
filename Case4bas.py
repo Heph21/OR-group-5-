@@ -89,15 +89,17 @@ def expProfit(vI):
     return dRes
 
 def valleyDistribution():
+    """
+    Purpose: to create a valley distribution
+    
+    Input:
+    
+    Output:
+        vA, vector of numbers that span the (discrete) domain of the probability distribution
+        vP, vector of probabilities for each number in the domain
+    """
     vA = np.arange(iLow, iHigh+1)
     vP = np.array([15,13,11,9,6,2,6,9,11,13,15])
-    vP = vP/110
-    
-    return(vA, vP)
-
-def peakDistribution():
-    vA = np.arange(iLow, iHigh+1)
-    vP = np.array([1,3,5,7,9,60,9,7,5,3,1])
     vP = vP/110
     
     return(vA, vP)
@@ -127,9 +129,6 @@ def runSimulation(iN=1000, bPrint=0, sDistr='uniform'):
                 iX    = st.binom.ppf(dProb, n=iHigh, p=1/2)
             elif(sDistr == 'valley'):
                 vA, vP = valleyDistribution()
-                iX     = np.random.choice(vA,1,p=vP)
-            elif(sDistr == 'peak'):
-                vA, vP = peakDistribution()
                 iX     = np.random.choice(vA,1,p=vP)
             else:
                 iX    = np.random.randint(iLow, iHigh+1)
