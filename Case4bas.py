@@ -88,6 +88,20 @@ def expProfit(vI):
     
     return dRes
 
+def valleyDistribution():
+    vA = np.arange(iLow, iHigh+1)
+    vP = np.array([15,13,11,9,6,2,6,9,11,13,15])
+    vP = vP/110
+    
+    return(vA, vP)
+
+def peakDistribution():
+    vA = np.arange(iLow, iHigh+1)
+    vP = np.array([1,3,5,7,9,60,9,7,5,3,1])
+    vP = vP/110
+    
+    return(vA, vP)
+    
 def runSimulation(iN=1000, bPrint=0, sDistr='uniform'):
     """
     Purpose: to run a number of simulations and compute the optimal expected profit for the game 
@@ -108,12 +122,15 @@ def runSimulation(iN=1000, bPrint=0, sDistr='uniform'):
         
         for j in range(iTurns):
             #np.random.seed(i*i+j)
-            if(sDistr == 'Binom'):
+            if(sDistr == 'binom'):
                 dProb = np.random.rand()
-                iX    = st.binom.ppf(dProb, n=iHigh, p=1/iTurns)
-            elif(sDistr == 'Boltz'):
-                dProb = np.random.rand()
-                iX    = st.binom.ppf(dProb, n=iHigh, p=1/iTurns)
+                iX    = st.binom.ppf(dProb, n=iHigh, p=1/2)
+            elif(sDistr == 'valley'):
+                vA, vP = valleyDistribution()
+                iX     = np.random.choice(vA,1,p=vP)
+            elif(sDistr == 'peak'):
+                vA, vP = peakDistribution()
+                iX     = np.random.choice(vA,1,p=vP)
             else:
                 iX    = np.random.randint(iLow, iHigh+1)
             vX[j] = iX
@@ -239,8 +256,11 @@ def partD():
     vBinom = runSimulation(sDistr='binom')
     reportFindings(vBinom)
     
-    #vNext = runSimulation(sDistr='boltz')
-    #reportFindings(vNext)
+    vNext = runSimulation(sDistr='valley')
+    reportFindings(vNext)
+    
+    vNext = runSimulation(sDistr='peak')
+    reportFindings(vNext)
     
     
 def main(): 
