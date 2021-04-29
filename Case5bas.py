@@ -201,11 +201,13 @@ def relativeValues(vR):
     
     # solve the system
     vGandVs = np.linalg.solve(mSystem, vCosts)
+    
+    return vGandVs
+
+def improveAvg(vR, vGandVs):
+    dG      = vGandVs[0] 
     vV      = np.delete(vGandVs, 0)
     
-    return vV
-
-def improveAvg(vR, vV):
     iM      = len(vV)
     iN      = len(costs)
     mValues = np.zeros((iM,iN))
@@ -231,9 +233,9 @@ def improveAvg(vR, vV):
         vNewR[i]  = iA
     
     print('Policy:', vNewR)
-    print('Corresponding average costs:', vAvgV)
-        
-    return vNewR, vAvgV
+    print('Corresponding average costs are for each state: %.2f' %dG)
+    
+    return vNewR, dG
 
 def averageCosts(vR):
     bConverged = False
@@ -245,16 +247,16 @@ def averageCosts(vR):
         vPreviousR = vCurrentR
         
         # determine relative values
-        vV = relativeValues(vPreviousR)
+        vGandVs = relativeValues(vPreviousR)
         
         # policy improvement
-        vCurrentR, vAvgV = improveAvg(vPreviousR, vV)
+        vCurrentR, dG = improveAvg(vPreviousR, vGandVs)
     
         #convergence test
         bConverged = areEqual(vCurrentR, vPreviousR)
     
     #print('The optimal policy is:', vCurrentR)
-    #print('The corresponding average costs are:', vAvgV, '\n')
+    #print('The corresponding average costs are:', dG, '\n')
 
 def main():
     # parts A and B
