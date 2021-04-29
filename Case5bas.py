@@ -120,6 +120,7 @@ def improvePolicy(vR, vX, dAlpha):
             #print(iA, dCosts, dDiscountTerm)
             
             mValues[i][j] = dCosts + dDiscountTerm
+    #print(vX)
     #print(mValues)
     
     # find the smallest discounted costs and corresponding action for each state i
@@ -132,7 +133,7 @@ def improvePolicy(vR, vX, dAlpha):
         vNewR[i]  = iA
     
     print('Policy:', vNewR)
-    print('Corresponding discounted costs:', vDiscV, '\n')
+    print('Corresponding discounted costs:', vDiscV)
         
     return vNewR, vDiscV
 
@@ -149,17 +150,18 @@ def areEqual(vA, vB):
     
     return True
      
-def totalCosts(vR, dAlpha=.5):
+def totalDiscountedCosts(vR, dAlpha):
     bConverged = False
     vCurrentR = vR
     
-    print('The initial policy is:', vR, '\n')
+    print('Using dicount factor %.1f and initial policy' %dAlpha, vR, ': \n')
+    #print('The initial policy is:', vR, '\n')
     
     while(bConverged == False):
         vPreviousR = vCurrentR
         
         # value computation
-        vX = valueComputation(vR, dAlpha)
+        vX = valueComputation(vCurrentR, dAlpha)
     
         # policy improvement
         vCurrentR, vDiscV = improvePolicy(vCurrentR, vX, dAlpha) 
@@ -167,16 +169,21 @@ def totalCosts(vR, dAlpha=.5):
         # convergence test
         bConverged = areEqual(vCurrentR, vPreviousR)
     
-    print('The optimal policy is:', vCurrentR)
-    print('The corresponding discounted costs are:', vDiscV, '\n')
+    #print('The optimal policy is:', vCurrentR)
+    #print('The corresponding discounted costs are:', vDiscV, '\n\n')
 
 
 def main():
+    # parts A and B
+    vAlpha = [.2,.5,.8]
     vRa = [1,1,2,1,1]
     vRb = [2,2,2,2,2]
-    totalCosts(vRa)
-    totalCosts(vRb)
-
+    
+    for dAlpha in vAlpha:    
+        totalDiscountedCosts(vRa, dAlpha)
+    
+    for dAlpha in vAlpha:
+        totalDiscountedCosts(vRb, dAlpha)
 
 if __name__ == "__main__":
     main()
