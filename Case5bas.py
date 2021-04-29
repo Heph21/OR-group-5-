@@ -42,7 +42,7 @@ costs = {
 
 
 
-
+"""
 def stationaryDistr(vR, iPow=15):
     iN = len(vR)
     mP = np.zeros((iN,iN))
@@ -73,7 +73,7 @@ def averageCosts(vR):
     
     print(vPi, vCosts, dV)
     print(sum(vPi))
-      
+"""     
 def valueComputation(vR, dAlpha):  
     iN     = len(vR)
     mTrans = np.zeros((iN,iN))
@@ -104,7 +104,7 @@ def valueComputation(vR, dAlpha):
     
     return vX
 
-def improvePolicy(vR, vX, dAlpha):
+def improveDiscountPolicy(vR, vX, dAlpha):
     iM      = len(vX)
     iN      = len(costs)
     mValues = np.zeros((iM,iN))
@@ -154,36 +154,128 @@ def totalDiscountedCosts(vR, dAlpha):
     bConverged = False
     vCurrentR = vR
     
-    print('Using dicount factor %.1f and initial policy' %dAlpha, vR, ': \n')
+    print('\nUsing discount factor %.1f and initial policy' %dAlpha, vR, ': \n')
     #print('The initial policy is:', vR, '\n')
     
     while(bConverged == False):
         vPreviousR = vCurrentR
         
         # value computation
-        vX = valueComputation(vCurrentR, dAlpha)
+        vX = valueComputation(vPreviousR, dAlpha)
     
         # policy improvement
-        vCurrentR, vDiscV = improvePolicy(vCurrentR, vX, dAlpha) 
+        vCurrentR, vDiscV = improveDiscountPolicy(vPreviousR, vX, dAlpha) 
     
         # convergence test
         bConverged = areEqual(vCurrentR, vPreviousR)
     
-    #print('The optimal policy is:', vCurrentR)
-    #print('The corresponding discounted costs are:', vDiscV, '\n\n')
+    print('The optimal policy is:', vCurrentR)
+    print('The corresponding discounted costs are:', vDiscV, '\n')
 
+def relativeValues(vR):
+    iN = len(vR)
+    mTrans = np.zeros((iN,iN))
+    vCosts = np.zeros(iN+1)
+    
+    for i in range(iN):
+        iA       = vR[i] # action iA corresponding to state i
+        
+        # set up the transition matrix corresponding to the policy
+        vTrans    = transitions[iA][i]
+        mTrans[i] = vTrans 
+        
+        # compute the costs for each action in the policy
+        vCosts[i] = costs[iA][i]
+    
+    # set up the system of linear equations
+    mSystem         = np.zeros((iN+1,iN+1))
+    mSystem[:,0]    = 1     # set the g coefficients
+    mSystem[iN][iN] = 1     # set the final v-parameter coeffecient
+    
+    for i in range(iN):
+        for j in range(iN):
+            mSystem[i][j+1] = -1 * mTrans[i][j] # the coefficients of the system
+            
+            if(i == j):
+                mSystem[i][j+1] += 1  # for the diagonal coefficients, we add 1 
+    
+    # solve the system
+    vGandVs = np.linalg.solve(mSystem, vCosts)
+    vV      = np.delete(vGandVs, 0)
+    
+    return vV
+
+def improveAvg(vR, vV):
+    iM      = len(vV)
+    iN      = len(costs)
+    mValues = np.zeros((iM,iN))
+    vNewR   = np.zeros(iM)
+    vAvgV   = np.zeros(iM) 
+    
+    for i in range(iM):
+        for j in range(iN):
+            iA = j+1 # action iA
+            
+            dCosts = costs[iA][i]
+            dVTerm = np.dot(vV, transitions[iA][i])
+            
+            mValues[i][j] = dCosts + dVTerm
+    
+    # find the smallest discounted costs and corresponding action for each state i
+    for i in range(iM):
+        vOutcomes = mValues[i]
+        dAvgV     = np.min(vOutcomes)
+        iA        = np.argmin(vOutcomes) + 1 # add one since the actions start at 1 rather than 0
+        
+        vAvgV[i] = dAvgV
+        vNewR[i]  = iA
+    
+    print('Policy:', vNewR)
+    print('Corresponding average costs:', vAvgV)
+        
+    return vNewR, vAvgV
+
+def averageCosts(vR):
+    bConverged = False
+    vCurrentR = vR
+    
+    print('Using initial policy', vR, ':\n')
+    
+    while(bConverged == False):
+        vPreviousR = vCurrentR
+        
+        # determine relative values
+        vV = relativeValues(vPreviousR)
+        
+        # policy improvement
+        vCurrentR, vAvgV = improveAvg(vPreviousR, vV)
+    
+        #convergence test
+        bConverged = areEqual(vCurrentR, vPreviousR)
+    
+    #print('The optimal policy is:', vCurrentR)
+    #print('The corresponding average costs are:', vAvgV, '\n')
 
 def main():
     # parts A and B
     vAlpha = [.2,.5,.8]
-    vRa = [1,1,2,1,1]
+    vRa = [1,1,1,1,1]
     vRb = [2,2,2,2,2]
     
+    print('\nPART A\n')
     for dAlpha in vAlpha:    
         totalDiscountedCosts(vRa, dAlpha)
     
+    print('\nPART B\n')
     for dAlpha in vAlpha:
         totalDiscountedCosts(vRb, dAlpha)
+        
+    # parts C and D
+    print('\nPART C\n')
+    averageCosts(vRa)
+    
+    print('\nPART D\n')
+    averageCosts(vRb)
 
 if __name__ == "__main__":
     main()
