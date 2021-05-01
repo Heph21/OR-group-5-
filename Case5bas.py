@@ -94,7 +94,7 @@ def valueComputation(vR, dAlpha):
     
     for i in range(iN):
         for j in range(iN):
-            mSystem[i][j] = -1 *dAlpha * mTrans[i][j] # the coefficients of the system
+            mSystem[i][j] = -1 * dAlpha * mTrans[i][j] # the coefficients of the system
             
             if(i == j):
                 mSystem[i][j] += 1  # for the diagonal coefficients, we add 1 
@@ -104,12 +104,10 @@ def valueComputation(vR, dAlpha):
     
     return vX
 
-def improveDiscountPolicy(vR, vX, dAlpha):
+def improveDiscountPolicy(vR, vX, dAlpha, bPrint=True):
     iM      = len(vX)
     iN      = len(costs)
     mValues = np.zeros((iM,iN))
-    vNewR   = np.zeros(iM)
-    vDiscV  = np.zeros(iM) 
     
     for i in range(iM):
         for j in range(iN):
@@ -124,6 +122,9 @@ def improveDiscountPolicy(vR, vX, dAlpha):
     #print(mValues)
     
     # find the smallest discounted costs and corresponding action for each state i
+    vNewR   = np.zeros(iM)
+    vDiscV  = np.zeros(iM) 
+    
     for i in range(iM):
         vOutcomes = mValues[i]
         dDisc     = np.min(vOutcomes)
@@ -132,8 +133,9 @@ def improveDiscountPolicy(vR, vX, dAlpha):
         vDiscV[i] = dDisc
         vNewR[i]  = iA
     
-    print('Policy:', vNewR)
-    print('Corresponding discounted costs:', vDiscV)
+    if(bPrint):
+        print('Policy:', vNewR)
+        print('Corresponding discounted costs:', vDiscV)
         
     return vNewR, vDiscV
 
@@ -150,12 +152,12 @@ def areEqual(vA, vB):
     
     return True
      
-def totalDiscountedCosts(vR, dAlpha):
+def totalDiscountedCosts(vR, dAlpha, bPrint=True):
     bConverged = False
     vCurrentR = vR
     
-    print('\nUsing discount factor %.1f and initial policy' %dAlpha, vR, ': \n')
-    #print('The initial policy is:', vR, '\n')
+    if(bPrint):
+        print('\nUsing discount factor %.1f and initial policy' %dAlpha, vR, ': \n')
     
     while(bConverged == False):
         vPreviousR = vCurrentR
@@ -164,13 +166,15 @@ def totalDiscountedCosts(vR, dAlpha):
         vX = valueComputation(vPreviousR, dAlpha)
     
         # policy improvement
-        vCurrentR, vDiscV = improveDiscountPolicy(vPreviousR, vX, dAlpha) 
+        vCurrentR, vDiscV = improveDiscountPolicy(vPreviousR, vX, dAlpha, bPrint) 
     
         # convergence test
         bConverged = areEqual(vCurrentR, vPreviousR)
     
-    print('The optimal policy is:', vCurrentR)
-    print('The corresponding discounted costs are:', vDiscV, '\n')
+    #print('The optimal policy is:', vCurrentR)
+    #print('The corresponding discounted costs are:', vDiscV, '\n')
+    
+    return vCurrentR
 
 def relativeValues(vR):
     iN = len(vR)
@@ -204,15 +208,13 @@ def relativeValues(vR):
     
     return vGandVs
 
-def improveAvg(vR, vGandVs):
+def improveAvg(vR, vGandVs, bPrint=True):
     dG      = vGandVs[0] 
     vV      = np.delete(vGandVs, 0)
     
     iM      = len(vV)
     iN      = len(costs)
     mValues = np.zeros((iM,iN))
-    vNewR   = np.zeros(iM)
-    vAvgV   = np.zeros(iM) 
     
     for i in range(iM):
         for j in range(iN):
@@ -224,6 +226,9 @@ def improveAvg(vR, vGandVs):
             mValues[i][j] = dCosts + dVTerm
     
     # find the smallest discounted costs and corresponding action for each state i
+    vNewR   = np.zeros(iM)
+    vAvgV   = np.zeros(iM) 
+    
     for i in range(iM):
         vOutcomes = mValues[i]
         dAvgV     = np.min(vOutcomes)
@@ -232,16 +237,18 @@ def improveAvg(vR, vGandVs):
         vAvgV[i] = dAvgV
         vNewR[i]  = iA
     
-    print('Policy:', vNewR)
-    print('Corresponding average costs are for each state: %.2f' %dG)
+    if(bPrint):
+        print('Corresponding average costs are for each state: %.2f' %dG)
+        print('The (possibly) improved policy is:', vNewR)
     
     return vNewR, dG
 
-def averageCosts(vR):
+def averageCosts(vR, bPrint=True):
     bConverged = False
     vCurrentR = vR
     
-    print('Using initial policy', vR, ':\n')
+    if(bPrint):
+        print('Using initial policy', vR, ':')
     
     while(bConverged == False):
         vPreviousR = vCurrentR
@@ -250,34 +257,75 @@ def averageCosts(vR):
         vGandVs = relativeValues(vPreviousR)
         
         # policy improvement
-        vCurrentR, dG = improveAvg(vPreviousR, vGandVs)
+        vCurrentR, dG = improveAvg(vPreviousR, vGandVs, bPrint)
     
         #convergence test
         bConverged = areEqual(vCurrentR, vPreviousR)
     
     #print('The optimal policy is:', vCurrentR)
     #print('The corresponding average costs are:', dG, '\n')
+    
+    return vCurrentR
+
+def medianMethod(dMinAlpha, dMaxAlpha, vInitR, vObjectiveR, iRun):
+    if(iRun == 0):
+        return dMaxAlpha
+    else:
+        dMedianAlpha = (dMinAlpha + dMaxAlpha) / 2
+    
+        vR = totalDiscountedCosts(vInitR, dMedianAlpha, False)
+    
+        if(areEqual(vR, vObjectiveR)):
+            dRes = medianMethod(dMinAlpha, dMedianAlpha, vInitR, vObjectiveR, iRun-1)
+        else:
+            dRes = medianMethod(dMedianAlpha, dMaxAlpha, vInitR, vObjectiveR, iRun-1)
+    
+    return dRes
+        
+def partE(vAlpha, vInitR, vRdisc, vRavg, iRun=5):
+    iN          = len(vAlpha)
+    dFirstAlpha = 1
+    
+    for i in range(iN):
+        dAlpha = vAlpha[i]
+        vR     = vRdisc[i]
+        
+        if(areEqual(vR, vRavg)):
+            dFirstAlpha = medianMethod(0, dAlpha, vInitR, vRavg, iRun)
+     
+    print('We have used two methods of finding an optimal policy: total discounted costs and long-run average costs.')
+    print('In order for both methods to give the same optimal policy, the discount factor alpha needs to be at least %.3f.' %dFirstAlpha)
+    print('\n')
 
 def main():
     # parts A and B
-    vAlpha = [.2,.5,.8]
-    vRa = [1,1,1,1,1]
-    vRb = [2,2,2,2,2]
+    vAlpha  = [.2,.5,.8]
+    vInitRa = [1,1,1,1,1]
+    vInitRb = [2,2,2,2,2]
+    
+    vOptRa = []     # list to store optimal policies
+    vOptRb = []     # list to store optimal policies
     
     print('\nPART A\n')
-    for dAlpha in vAlpha:    
-        totalDiscountedCosts(vRa, dAlpha)
+    for dAlpha in vAlpha:
+        vR = totalDiscountedCosts(vInitRa, dAlpha)  # compute optimal policy given alpha and initial policy
+        vOptRa.append(vR)                           # store optimal policy
     
     print('\nPART B\n')
     for dAlpha in vAlpha:
-        totalDiscountedCosts(vRb, dAlpha)
-        
+        vR = totalDiscountedCosts(vInitRb, dAlpha)  # compute optimal policy given alpha and initial policy
+        vOptRb.append(vR)                           # store optimal policy
+    
     # parts C and D
     print('\nPART C\n')
-    averageCosts(vRa)
+    vOptRc = averageCosts(vInitRa)
     
     print('\nPART D\n')
-    averageCosts(vRb)
-
+    vOptRd = averageCosts(vInitRb)
+    
+    print('\nPART E\n')
+    partE(vAlpha, vInitRa, vOptRa, vOptRc)
+    partE(vAlpha, vInitRa, vOptRb, vOptRd)
+    
 if __name__ == "__main__":
     main()
