@@ -282,7 +282,7 @@ def medianMethod(dMinAlpha, dMaxAlpha, vInitR, vObjectiveR, iRun):
     
     return dRes
         
-def partE(vAlpha, vInitR, vRdisc, vRavg, iRun=5):
+def partE(vAlpha, vInitR, vRdisc, vRavg, iRun=15):
     iN          = len(vAlpha)
     dFirstAlpha = 1
     
@@ -292,6 +292,7 @@ def partE(vAlpha, vInitR, vRdisc, vRavg, iRun=5):
         
         if(areEqual(vR, vRavg)):
             dFirstAlpha = medianMethod(0, dAlpha, vInitR, vRavg, iRun)
+            break
      
     print('We have used two methods of finding an optimal policy: total discounted costs and long-run average costs.')
     print('In order for both methods to give the same optimal policy, the discount factor alpha needs to be at least %.3f.' %dFirstAlpha)
