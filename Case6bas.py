@@ -35,20 +35,6 @@ rewards = {
     4: [400,320,-400],
     5: [100,20,-700]
     }
-"""
-def areEqual(vA, vB):
-    iM = len(vA)
-    iN = len(vB)
-    
-    if(iM != iN):
-        return False
-    else:
-        for i in range(iM):
-            if(vA[i] != vB[i]):
-                return False
-    
-    return True
-"""
 
 def absoluteError(vA, vB):
     iM   = len(vA)
@@ -74,7 +60,7 @@ def relativeError(vA, vB):
     
     return np.linalg.norm(vRelErr)
 
-def newValueFunc(vV, dAlpha, bPrint=True):
+def newValueFunc(vV, dAlpha):
     iM      = len(vV)
     iN      = len(transitions)
     mValues = np.zeros((iM,iN))
@@ -86,7 +72,7 @@ def newValueFunc(vV, dAlpha, bPrint=True):
             dReward = rewards[iState][j]
             
             mValues[i][j] += dReward
-            mValues[i][j] += dAlpha * vV @ transitions[iA][i] 
+            mValues[i][j] += dAlpha * (transitions[iA][i] @ vV)
              
     vNewV = np.zeros(iM)
     vR    = np.zeros(iM)
@@ -101,11 +87,11 @@ def newValueFunc(vV, dAlpha, bPrint=True):
     
     return vNewV, vR
 
-def reportResults(vPolicies, vValues):
-    iN = len(vPolicies)
+def reportResults(vValues, vPolicies):
+    iN = len(vValues)
     
-    print('At the first iteration, we got a value vector of:', vValues[0])
-    print('At the second iteration, we got a value vector of:', vValues[1])
+    print('At iteration 1, we got a value vector of:', vValues[0])
+    print('At iteration 2, we got a value vector of:', vValues[1])
     print('At iteration %i, we got a value vector of:' %(iN-1), vValues[iN-2])
     print('At iteration %i, the final iteration, we got a value vector of:' %iN, vValues[iN-1])
     
@@ -119,8 +105,8 @@ def totalDiscountedCosts(vInitV, dAlpha, bPrint=True, dEps=.05):
     bConverged = False
     vNewV      = vInitV 
     dStopCrit  = (1-dAlpha) / dAlpha * dEps
-    vPolicies  = []
     vValues    = []
+    vPolicies  = []
     
     print('\nWe use value iteration to estimate the total discounted rewards.')
     print('Using discount factor %.1f and initial value vector' %dAlpha, vInitV, ': \n')
@@ -128,12 +114,12 @@ def totalDiscountedCosts(vInitV, dAlpha, bPrint=True, dEps=.05):
     while(bConverged == False):
         vCurrentV = vNewV
         
-        # new value computation and determine correpsonding policy
-        vNewV, vR = newValueFunc(vCurrentV, dAlpha, bPrint)
+        # compute new value and determine corresponding policy
+        vNewV, vR = newValueFunc(vCurrentV, dAlpha)
     
         # add value function and policy to the record
-        vPolicies.append(vR)
         vValues.append(vNewV)
+        vPolicies.append(vR)
         
         # convergence test
         dRelErr    = relativeError(vNewV, vCurrentV)
@@ -145,9 +131,9 @@ def totalDiscountedCosts(vInitV, dAlpha, bPrint=True, dEps=.05):
             print('The updated value function is', vNewV)
             print('The corresponding policy is', vR, '\n')
     
-    reportResults(vPolicies, vValues)
+    reportResults(vValues, vPolicies)
     
-    return vPolicies, vValues
+    return vValues, vPolicies
 
 def valueComputation(vR, dAlpha):  
     iN       = len(vR)
@@ -155,14 +141,14 @@ def valueComputation(vR, dAlpha):
     vRewards = np.zeros(iN)
     
     for i in range(iN):
-        iState   = i+1
-        iA       = int(vR[i]) # action iA corresponding to state i
+        iState = i+1
+        iA     = int(vR[i]) # action iA corresponding to state i
         
         # set up the transition matrix corresponding to the policy
         vTrans    = transitions[iA][i]
         mTrans[i] = vTrans 
         
-        # compute the costs for each action in the policy
+        # compute the rewards for each action in the policy
         vRewards[i] = rewards[iState][iA-1]
         
     # set up the system of linear equations with all x's on one side and the costs on the other
@@ -236,28 +222,103 @@ def checkOptimality(vR, dAlpha):
     
     # check optimal policy R
     if(areEqual(vR, vQR)):
-        print('We can confirm the optimality of our policy')
+        print('We can confirm the optimality of our policy.')
     else:
-        print('The policy we found does not seem optimal')
+        print('The policy we found does not seem optimal.')
       
     # compare values V(part a) to Q
     if(areEqual(np.around(vV,decimals=12), np.around(vQ,decimals=12))):
-        print('The value function equals the Q-function')
+        print('The value function equals the Q-function.')
     else:
-        print('The value function does not equal the Q-function')
+        print('The value function does not equal the Q-function.')
+
+def boundaries(vCurrentV, vNewV):
+    vDiff = vNewV - vCurrentV
+    
+    dMin = min(vDiff)
+    dMax = max(vDiff)
+    
+    return dMin, dMax
+
+def relativeValues(vR):
+    iN       = len(vR)
+    mTrans   = np.zeros((iN,iN))
+    vRewards = np.zeros(iN+1)
+    
+    for i in range(iN):
+        iState   = i+1
+        iA       = int(vR[i]) # action iA corresponding to state i
         
+        # set up the transition matrix corresponding to the policy
+        vTrans    = transitions[iA][i]
+        mTrans[i] = vTrans 
+        
+        # compute the costs for each action in the policy
+        vRewards[i] = rewards[iState][iA-1]
+    
+    # set up the system of linear equations
+    mSystem         = np.zeros((iN+1,iN+1))
+    mSystem[:,0]    = 1     # set the g coefficients
+    mSystem[iN][iN] = 1     # set the final v-parameter coeffecient
+    
+    for i in range(iN):
+        for j in range(iN):
+            mSystem[i][j+1] = -1 * mTrans[i][j] # the coefficients of the system
+            
+            if(i == j):
+                mSystem[i][j+1] += 1  # for the diagonal coefficients, we add 1 
+    
+    # solve the system
+    vGandVs = np.linalg.solve(mSystem, vRewards)
+    
+    return vGandVs
+    
+def avgRewards(vInitV, iN=100):
+    vNewV     = vInitV
+    vValues   = []
+    vPolicies = []
+    
+    print('\nWe use value iteration to estimate the average rewards.')
+    print('Using initial value vector', vInitV, ': \n')
+    
+    for i in range(iN):
+        vCurrentV = vNewV
+        
+        # compute new value and determine corresponding policy
+        vNewV, vR = newValueFunc(vCurrentV, dAlpha=1)   # use same function but set discount to 1
+    
+        # add value function and policy to the record
+        vValues.append(vNewV)
+        vPolicies.append(vR)
+        
+        # find lower and upper boundaries
+        dMin, dMax = boundaries(vCurrentV, vNewV)
+    
+    vGandVs = relativeValues(vPolicies[-1])
+    dG      = vGandVs[0]
+    
+    reportResults(vValues, vPolicies)
+    
+    print('For the average reward g, we found boundaries of: (%f, %f)' %(dMin, dMax))
+    print('Solving a system of equations to find g, we find:', dG)
+    
+    if((dG>=dMin) & (dG<=dMax)):
+        print('This is within the computed boundaries.')
+    else:
+        print('Unfortunately, this is outside the computed boundaries.')
+    
 def main():
     iStates = len(rewards)
     vAlpha  = [.3,.6,.9]
     vInitV = np.zeros(iStates)
     
-    #vPolicies, vValues = totalDiscountedCosts(vInitV, vAlpha[1])
-    
     for dAlpha in vAlpha:
-        vPolicies, vValues = totalDiscountedCosts(vInitV, dAlpha, bPrint=False)
+        vValues, vPolicies = totalDiscountedCosts(vInitV, dAlpha, bPrint=False)
         
         vR = vPolicies[-1]
         checkOptimality(vR, dAlpha)
+        
+        avgRewards(vInitV)
    
     
 if __name__ == "__main__":
