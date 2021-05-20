@@ -299,8 +299,8 @@ def avgRewards(vInitV, iN=100):
     
     reportResults(vValues, vPolicies)
     
-    print('For the average reward g, we found boundaries of: (%f, %f)' %(dMin, dMax))
-    print('Solving a system of equations to find g, we find:', dG)
+    print('For the average reward g, we found boundaries of: (%.2f, %.2f)' %(dMin, dMax))
+    print('Solving a system of equations to find g, we find: %.2f' %dG)
     
     if((dG>=dMin) & (dG<=dMax)):
         print('This is within the computed boundaries.')
