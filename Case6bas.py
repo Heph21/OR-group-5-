@@ -318,7 +318,7 @@ def main():
         vR = vPolicies[-1]
         checkOptimality(vR, dAlpha)
         
-        avgRewards(vInitV)
+    avgRewards(vInitV)
    
     
 if __name__ == "__main__":
