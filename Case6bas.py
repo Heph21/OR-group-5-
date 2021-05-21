@@ -101,7 +101,7 @@ def reportResults(vValues, vPolicies):
     print(vPolicies[iN-2])
     print(vPolicies[iN-1], '\n')
     
-def totalDiscountedCosts(vInitV, dAlpha, bPrint=True, dEps=.05):
+def totalDiscountedCosts(vInitV, dAlpha, bPrint=True, dEps=.05, sError='relative'):
     bConverged = False
     vNewV      = vInitV 
     dStopCrit  = (1-dAlpha) / dAlpha * dEps
@@ -124,7 +124,14 @@ def totalDiscountedCosts(vInitV, dAlpha, bPrint=True, dEps=.05):
         # convergence test
         dRelErr    = relativeError(vNewV, vCurrentV)
         dAbsErr    = absoluteError(vNewV, vCurrentV)
-        bConverged = (dAbsErr < dStopCrit)
+        
+        if(sError=='relative'):
+            bConverged = (dRelErr < dStopCrit)
+        elif(sError=='absolute'):
+            bConverged = (dAbsErr < dStopCrit)
+        else:
+            print('Something went wrong with the error. Please try again.')
+            break
         
         # do some reporting
         if(bPrint):
@@ -313,11 +320,21 @@ def main():
     vInitV = np.zeros(iStates)
     
     for dAlpha in vAlpha:
-        vValues, vPolicies = totalDiscountedCosts(vInitV, dAlpha, bPrint=False)
+        vValues, vPolicies = totalDiscountedCosts(vInitV, dAlpha, bPrint=False, sError='relative')
+        
+        vR = vPolicies[-1]
+        checkOptimality(vR, dAlpha)
+    
+    # run part A and B again, now using the absolute error instead of the relative error
+    print('\n\nLets try this again with a different stop criterion (now using absolute errors')
+    
+    for dAlpha in vAlpha:
+        vValues, vPolicies = totalDiscountedCosts(vInitV, dAlpha, bPrint=False, sError='absolute')
         
         vR = vPolicies[-1]
         checkOptimality(vR, dAlpha)
         
+    # part C 
     avgRewards(vInitV)
    
     
